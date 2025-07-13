@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   traefik:
     image: "traefik"
@@ -20,6 +21,7 @@ services:
     volumes:
       - traefik_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
+
   ncat:
     image: stephengpope/no-code-architects-toolkit:latest
     env_file:
@@ -30,13 +32,17 @@ services:
       - traefik.http.routers.ncat.tls=true
       - traefik.http.routers.ncat.entrypoints=web,websecure
       - traefik.http.routers.ncat.tls.certresolver=mytlschallenge
+      - traefik.http.services.ncat.loadbalancer.server.port=8080
     volumes:
+      - nca_storage:/tmp
       - storage:/var/www/html/storage/app
       - logs:/var/www/html/storage/logs
     restart: unless-stopped
 
 volumes:
   traefik_data:
+    driver: local
+  nca_storage:
     driver: local
   storage:
     driver: local
