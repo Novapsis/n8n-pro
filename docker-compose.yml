@@ -1,3 +1,4 @@
+version: '3.8'
 services:
   traefik:
     image: traefik
@@ -10,7 +11,8 @@ services:
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
       - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
+      - "--certificatesresolvers.mytlschallenge.acme.httpchallenge=true"
+      - "--certificatesresolvers.mytlschallenge.acme.httpchallenge.entrypoint=web"
       - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
       - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
     ports:
@@ -26,7 +28,7 @@ services:
       - .env
     labels:
       - traefik.enable=true
-      - traefik.http.routers.ncat.rule=Host(`tools.novapsis.site`)  # Hardcodeado
+      - traefik.http.routers.ncat.rule=Host(`tools.novapsis.site`)
       - traefik.http.routers.ncat.tls=true
       - traefik.http.routers.ncat.entrypoints=web,websecure
       - traefik.http.routers.ncat.tls.certresolver=mytlschallenge
@@ -36,3 +38,13 @@ services:
       - storage:/var/www/html/storage/app
       - logs:/var/www/html/storage/logs
     restart: unless-stopped
+
+volumes:
+  traefik_data:
+    driver: local
+  nca_storage:
+    driver: local
+  storage:
+    driver: local
+  logs:
+    driver: local
