@@ -1,7 +1,7 @@
 version: '3.8'
 services:
   traefik:
-    image: "traefik"
+    image: traefik
     restart: unless-stopped
     command:
       - "--api=true"
@@ -10,7 +10,6 @@ services:
       - "--providers.docker.exposedbydefault=false"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.web.http.redirections.entryPoint.to=websecure"
-      - "--entrypoints.web.http.redirections.entrypoint.scheme=https"
       - "--entrypoints.websecure.address=:443"
       - "--certificatesresolvers.mytlschallenge.acme.tlschallenge=true"
       - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
