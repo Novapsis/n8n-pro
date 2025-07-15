@@ -4,24 +4,28 @@ services:
     image: traefik
     restart: unless-stopped
     command:
-      - "--api=true"
-      - "--api.insecure=true"
-      - "--providers.docker=true"
-      - "--providers.docker.exposedbydefault=false"
-      - "--entrypoints.web.address=:80"
-      - "--entrypoints.websecure.address=:443"
-      - "--certificatesresolvers.mytlschallenge.acme.httpchallenge=true"
-      - "--certificatesresolvers.mytlschallenge.acme.httpchallenge.entrypoint=web"
-      - "--certificatesresolvers.mytlschallenge.acme.email=${SSL_EMAIL}"
-      - "--certificatesresolvers.mytlschallenge.acme.storage=/letsencrypt/acme.json"
+      # ── Core ─────────────────────────────────────────
+      - --api.insecure=true                     # Panel en :8080
+      - --providers.docker=true
+      - --providers.docker.exposedbydefault=false
+      # ── Entrypoints ─────────────────────────
+      - --entrypoints.web.address=:80           # HTTP  (Let’s Encrypt challenge)
+      - --entrypoints.websecure.address=:443    # HTTPS producción
+      # ── ACME (HTTP-01) ──────────────────────
+      - --certificatesresolvers.le.acme.httpchallenge=true
+      - --certificatesresolvers.le.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.email=${SSL_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
     labels:
-      - "traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https"
-      - "traefik.http.routers.redirs.rule=hostregexp(`{host:.+}`) && !PathPrefix(`/.well-known/acme-challenge/`)"
-      - "traefik.http.routers.redirs.entrypoints=web"
-      - "traefik.http.routers.redirs.middlewares=redirect-to-https"
+      # Redirección a HTTPS excepto para el challenge
+      - traefik.http.middlewares.redirect-to-https.redirectscheme.scheme=https
+      - traefik.http.routers.redirect.rule=hostregexp(`{host:.+}`) && !PathPrefix(`/.well-known/acme-challenge/`)
+      - traefik.http.routers.redirect.entrypoints=web
+      - traefik.http.routers.redirect.middlewares=redirect-to-https
+    ports```
     ports:
-      - "8001:80"
-      - "8443:443"
+      - "80:80"     # << Cambiado (era 8001:80)
+      - "8443:443"  # Puedes dejar 8443 o pasar a 443:443 si ese puerto está libre
     volumes:
       - traefik_data:/letsencrypt
       - /var/run/docker.sock:/var/run/docker.sock:ro
@@ -33,9 +37,9 @@ services:
     labels:
       - traefik.enable=true
       - traefik.http.routers.ncat.rule=Host(`tools.novapsis.site`)
+      - traefik.http.routers.ncat.entrypoints=websecure
       - traefik.http.routers.ncat.tls=true
-      - traefik.http.routers.ncat.entrypoints=web,websecure
-      - traefik.http.routers.ncat.tls.certresolver=mytlschallenge
+      - traefik.http.routers.ncat.tls.certresolver=le   # mismo nombre que arriba
       - traefik.http.services.ncat.loadbalancer.server.port=8080
     volumes:
       - nca_storage:/tmp
@@ -45,10 +49,6 @@ services:
 
 volumes:
   traefik_data:
-    driver: local
   nca_storage:
-    driver: local
   storage:
-    driver: local
   logs:
-    driver: local
